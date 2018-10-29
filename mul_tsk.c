@@ -359,6 +359,7 @@ ER sig_sem( ID semid )
   sem_obj[ semid - 1 ].sigCount++;
   //sem_obj[ semid - 1 ].sigCount = sem_obj[ semid - 1 ].waiCount;
   unl_cpu();
+  rot_rdq();
 
   return E_OK;
 }
