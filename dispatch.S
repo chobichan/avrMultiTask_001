@@ -26,7 +26,7 @@ __zero_reg__ = 1    ;r1: always zero
 ;AVR GCCの2番目の引数 : r23:r22
 ;AVR GCCの3番目の引数 : r21:r20
 ;AVR GCCの4番目の引数 : r19:r18
-;AVR GCCの4番目の戻り値 : r25:r24
+;AVR GCCの戻り値 : r25:r24
 
   .text
 
