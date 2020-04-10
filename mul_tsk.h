@@ -1,15 +1,34 @@
-/****************************************************************************/
-/* マルチタスク実行                                                         */
-/*                                                                          */
-/* designed by hamayan                                                      */
-/*                         Copyright (C) 2012 hamayan All Rights Reserved.  */
-/****************************************************************************/
+/* ----------------------------------------
+ not preempt multi task service call routines.
+
+  Copyright (c) 2020 hamayan (hamayan.contact@gmail.com).
+  All right reserved.
+
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+  Created 2020 by hamayan (hamayan.contact@gmail.com)
+---------------------------------------- */
+
 #ifndef _MULTITASK_H_
 #define _MULTITASK_H_
 
-/****************************************************************************/
-/* サービスコールデータ型                                                   */
-/****************************************************************************/
+#include "derivertive.h"
+
+/* ----------------------------------------
+ defines service call
+---------------------------------------- */
 typedef  int            ID;
 typedef  int            ER;
 typedef  unsigned char  STAT;
@@ -17,8 +36,9 @@ typedef  unsigned long long  SYSTIM;
 //typedef  unsigned long  SYSTIM;
 typedef  unsigned long  RELTIM;
 typedef  unsigned long  TMO;
+typedef  unsigned int   UINT;
 
-typedef  long           VP_INT;  /* VP または INT */
+typedef  long           VP_INT;  /* VP or INT */
 typedef struct
 {
   void *sp;
@@ -28,23 +48,26 @@ typedef struct
 
 enum TSK_ID {TASK1,TASK2,TASK3,TASK4,TASK5,TASK6,TASK7,TASK8,TASK9,TASK10,};
 
-/****************************************************************************/
-/* セマフォ管理                                                             */
-/****************************************************************************/
+/* ----------------------------------------
+ manege semapfore
+---------------------------------------- */
 typedef struct
 {
-  unsigned int sigCount;  /*sig_semでカウントアップ*/
-  unsigned int waiCount;  /*wai_semでカウントアップ*/
+  unsigned int sigCount;
+  unsigned int waiCount;
 } SEM_OBJECT;
 
-/****************************************************************************/
-/* パケット形式                                                             */
-/****************************************************************************/
+typedef struct t_rsem
+{
+  ID    wtskid;  // First task ID of semaphore queue
+  UINT  semcnt;  // Current number of semaphore resources
+} T_RSEM;
+
 typedef  struct t_rtst{ STAT tskstat; STAT tskwait; } T_RTST;
 
-/****************************************************************************/
-/* 定数とマクロ                                                             */
-/****************************************************************************/
+/* ----------------------------------------
+ constants and macros
+---------------------------------------- */
 #define  E_OK        0
 #define  TMO_POL     0
 #define  TMO_FEVR    (-1)
@@ -85,9 +108,9 @@ typedef  struct t_rtst{ STAT tskstat; STAT tskwait; } T_RTST;
 #define  E_WBLK   (-57)
 #define  E_BOVR   (-58)
 
-/****************************************************************************/
-/* サービスコール                                                           */
-/****************************************************************************/
+/* ----------------------------------------
+ prototype
+---------------------------------------- */
 //ER   reg_tsk( ID tid, void (*task)(void), void *stk, unsigned int sz );
 ER reg_tsk( ID tid, void *tsk, void *stk, int stk_sz, VP_INT exinf1, VP_INT exinf2, VP_INT exinf3, VP_INT exinf4 );
 ER   sta_tsk( ID tid );
@@ -102,16 +125,26 @@ ER   rel_wai( ID tid );
 ER   get_par( VP_INT *exinf, int size );
 ER   dis_dsp( void );
 ER   ena_dsp( void );
+ER   isig_sem( ID semid );
 ER   sig_sem( ID semid );
 ER   wai_sem( ID semid );
+ER   pol_sem( ID semid );
+ER   ref_sem( ID semid, T_RSEM *pk_rsem );
 
-#define  loc_cpu()  __asm__("cli\n\t")
-#define  unl_cpu()  __asm__("sei\n\t")
+#if   defined(RLDUINO78_H)
+  #define  loc_cpu  noInterrupts
+  #define  unl_cpu  interrupts
+#elif defined (__GNUC__)
+  //#define  loc_cpu  __disable_irq
+  #define  loc_cpu()  __asm__("cpsid i\n\t")
+  //#define  unl_cpu  __enable_irq
+  #define  unl_cpu()  __asm__("cpsie i\n\t")
+#endif
 
-/****************************************************************************/
-/* ディスパッチャー                                                         */
-/****************************************************************************/
-void sta_ctx( void *exe );             /*コンテキストをロードし、タスク実行*/
-void swi_ctx( void *pre, void *post);  /*コンテキストの切り替え*/
+/* ----------------------------------------
+ disatcher prototype
+---------------------------------------- */
+void sta_ctx( void *exe );  // load context and task start.
+void swi_ctx( void *pre, void *post);  // switch context.
 
 #endif  /*_MULTITASK_H_*/
