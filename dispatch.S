@@ -1,14 +1,38 @@
-/* ------------------------------------------------------------------------ */
-/*  ディスパッチャー for Atmel AVR                                          */
-/*  ※プロジェクト HOSからAVRのディスパッチャーを参照                       */
-/*                                                                          */
-/*  Hyper Operating System V4  μITRON4.0仕様 Real-Time OS                  */
-/*    プロセッサ抽象化コンポーネント (Atmel ATmega)                         */
-/*    コンテキスト制御                                                      */
-/*                                                                          */
-/*                                  Copyright (C) 1998-2002 by Project HOS  */
-/*                                  http://sourceforge.jp/projects/hos/     */
-/* ------------------------------------------------------------------------ */
+/* ----------------------------------------
+ not preempt multi task service call routines.
+  dispatcher for AVR
+
+  Copyright (c) 2020 hamayan (hamayan.contact@gmail.com).
+  All right reserved.
+
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+  Created 2020 by hamayan (hamayan.contact@gmail.com)
+---------------------------------------- */
+
+/* --------------------------------------------------------------- */
+/*  dispatcher for Atmel AVR                                       */
+/*  Refer to AVR dispatcher from project HOS                       */
+/*                                                                 */
+/*  Hyper Operating System V4  μITRON4.0 specification Real-Time OS */
+/*   Processor abstraction component (Atmel ATmega)                */
+/*    Context control                                              */
+/*                                                                 */
+/*                         Copyright (C) 1998-2002 by Project HOS  */
+/*                         http://sourceforge.jp/projects/hos/     */
+/* --------------------------------------------------------------- */
 #define __SFR_OFFSET 0
 #include <avr/io.h>
 
@@ -19,14 +43,14 @@ __tmp_reg__ = 0     ;r0
 __zero_reg__ = 1    ;r1: always zero
 
 ;
-;AVR GCCの破壊レジスタ : r0,r18-r27(X register),r30-r31(Z register)
-;AVR GCCの非破壊レジスタ : r2-r17,r28-r29(Y register)
-;関数から戻る時は必ずr1レジスタを0にする  r1=0
-;AVR GCCの最初の引数 : r25:r24
-;AVR GCCの2番目の引数 : r23:r22
-;AVR GCCの3番目の引数 : r21:r20
-;AVR GCCの4番目の引数 : r19:r18
-;AVR GCCの戻り値 : r25:r24
+;AVR GCC Destruction Register : r0,r18-r27(X register),r30-r31(Z register)
+;AVR GCC non-destructive registers : r2-r17,r28-r29(Y register)
+;Always set the r1 register to 0 when returning from a function  r1=0
+;AVR GCC first argument : r25:r24
+;AVR GCC second argument : r23:r22
+;AVR GCC third argument : r21:r20
+;AVR GCC forth argument : r19:r18
+;AVR GCC return values : r25:r24
 
   .text
 
@@ -51,114 +75,114 @@ enableInterrupt:
 	.endfunc
 
 /************************************************
- コンテキストをロードし、タスクを開始
+ Load context and start task
  void sta_ctx(
- void *exe ) //実行コンテキストの保存先
- r25:r24にスタックポインタの保存元アドレス
+ void *exe ) // Execution context save destination
+ r25: r24: Stack pointer storage source address
 ************************************************/
   .global  sta_ctx
   .func    sta_ctx
 sta_ctx:
-  movw  XL,r24  ; これから展開されるコンテキストの保存アドレスを取得
-  ld  r0, X+  ; 保存元からスタックポインタの下位を取得
-  out __SP_L__,r0  ; スタックポインタの下位をIOレジスタのスタックポインタの下位に展開
-  ld  r0,X  ; 保存元からスタックポインタの上位を取得
-  out __SP_H__,r0  ; スタックポインタの上位をIOレジスタのスタックポインタの上位に展開
+  movw  XL,r24  ; Get the save address of the context to be expanded
+  ld  r0, X+  ; Get lower stack pointer from save source
+  out __SP_L__,r0  ; Expand the lower part of the stack pointer below the stack pointer of the IO register
+  ld  r0,X  ; Get stack pointer from save source
+  out __SP_H__,r0  ; Expand the upper part of the stack pointer to the upper part of the stack pointer of the IO register
 
-  pop r29   ; 非破壊レジスタのYレジスタの上位を展開
-  pop r28   ; 非破壊レジスタのYレジスタの下位を展開
+  pop r29   ; Expand the upper part of the non-destructive Y register
+  pop r28   ; Expand the lower part of the non-destructive Y register
 
-  pop r17  ; 非破壊レジスタの展開
-  pop r16  ; 非破壊レジスタの展開
-  pop r15  ; 非破壊レジスタの展開
-  pop r14  ; 非破壊レジスタの展開
-  pop r13  ; 非破壊レジスタの展開
-  pop r12  ; 非破壊レジスタの展開
-  pop r11  ; 非破壊レジスタの展開
-  pop r10  ; 非破壊レジスタの展開
-  pop r9  ; 非破壊レジスタの展開
-  pop r8  ; 非破壊レジスタの展開
-  pop r7  ; 非破壊レジスタの展開
-  pop r6  ; 非破壊レジスタの展開
-  pop r5  ; 非破壊レジスタの展開
-  pop r4  ; 非破壊レジスタの展開
-  pop r3  ; 非破壊レジスタの展開
-  pop r2  ; 非破壊レジスタの展開
-  pop r0  ; ステータスレジスタは代入しない
+  pop r17  ; Expand non-destructive registers
+  pop r16  ; Expand non-destructive registers
+  pop r15  ; Expand non-destructive registers
+  pop r14  ; Expand non-destructive registers
+  pop r13  ; Expand non-destructive registers
+  pop r12  ; Expand non-destructive registers
+  pop r11  ; Expand non-destructive registers
+  pop r10  ; Expand non-destructive registers
+  pop r9  ; Expand non-destructive registers
+  pop r8  ; Expand non-destructive registers
+  pop r7  ; Expand non-destructive registers
+  pop r6  ; Expand non-destructive registers
+  pop r5  ; Expand non-destructive registers
+  pop r4  ; Expand non-destructive registers
+  pop r3  ; Expand non-destructive registers
+  pop r2  ; Expand non-destructive registers
+  pop r0  ; Do not assign the status register
 
   ret
   .endfunc
 
 
 /************************************************
- 実行コンテキストの切替
+ Switching the execution context
  void swi_ctx(
- void *pre, //現在のコンテキストの保存先
- void *post) //切り替えるコンテキスト
- r25:r24にスタックポインタの保存先アドレス
- r23:r22にスタックポインタの保存元アドレス
+ void *pre, // Current context destination
+ void *post) // The context to switch to
+ r25: r24: Stack pointer storage address
+ r23: r22: Stack pointer storage source address
 ************************************************/
   .global  swi_ctx
   .func    swi_ctx
 swi_ctx:
-  in    r0,__SREG__ ; ステータスレジスタを保存
-  cli     ; 一旦割り込み禁止
-  push  r0    ; ステータスレジスタを保存
-  push  r2  ; 非破壊レジスタの保存
-  push  r3  ; 非破壊レジスタの保存
-  push  r4  ; 非破壊レジスタの保存
-  push  r5  ; 非破壊レジスタの保存
-  push  r6  ; 非破壊レジスタの保存
-  push  r7  ; 非破壊レジスタの保存
-  push  r8  ; 非破壊レジスタの保存
-  push  r9  ; 非破壊レジスタの保存
-  push  r10  ; 非破壊レジスタの保存
-  push  r11  ; 非破壊レジスタの保存
-  push  r12  ; 非破壊レジスタの保存
-  push  r13  ; 非破壊レジスタの保存
-  push  r14  ; 非破壊レジスタの保存
-  push  r15  ; 非破壊レジスタの保存
-  push  r16  ; 非破壊レジスタの保存
-  push  r17  ; 非破壊レジスタの保存
+  in    r0,__SREG__ ; Save status register
+  cli     ; Disable interrupt once
+  push  r0    ; Save status register
+  push  r2  ; Saving non-destructive registers
+  push  r3  ; Saving non-destructive registers
+  push  r4  ; Saving non-destructive registers
+  push  r5  ; Saving non-destructive registers
+  push  r6  ; Saving non-destructive registers
+  push  r7  ; Saving non-destructive registers
+  push  r8  ; Saving non-destructive registers
+  push  r9  ; Saving non-destructive registers
+  push  r10  ; Saving non-destructive registers
+  push  r11  ; Saving non-destructive registers
+  push  r12  ; Saving non-destructive registers
+  push  r13  ; Saving non-destructive registers
+  push  r14  ; Saving non-destructive registers
+  push  r15  ; Saving non-destructive registers
+  push  r16  ; Saving non-destructive registers
+  push  r17  ; Saving non-destructive registers
 
-  push  r28   ; 非破壊レジスタのYレジスタの下位を保存
-  push  r29   ; 非破壊レジスタのYレジスタの上位を保存
+  push  r28   ; Save the lower part of the non-destructive Y register
+  push  r29   ; Stores the upper part of the non-destructive Y register
 
-  movw  XL,r24  ; これから保存されるコンテキストの保存アドレスを取得
-  in  r0,__SP_L__  ; IOレジスタのスタックポインタの下位を読み出し
-  st  X+,r0  ; IOレジスタのスタックポインタの下位を保存
-  in  r0,__SP_H__ ; IOレジスタのスタックポインタの上位を読み出し
-  st  X,r0  ; IOレジスタのスタックポインタの上位を保存
+  movw  XL,r24  ; Get the save address of the context to be saved
+  in  r0,__SP_L__  ; Read the lower part of the IO register stack pointer
+  st  X+,r0  ; Store lower part of stack pointer of IO register
+  in  r0,__SP_H__ ; Read the upper part of the IO register stack pointer
+  st  X,r0  ; Store upper part of stack pointer of IO register
 
-  movw  XL,r22  ; これから展開されるコンテキストの保存アドレスを取得
-  ld  r0, X+  ; 保存元からスタックポインタの下位を取得
-  out __SP_L__,r0  ; スタックポインタの下位をIOレジスタのスタックポインタの下位に展開
-  ld  r0,X  ; 保存元からスタックポインタの上位を取得
-  out __SP_H__,r0  ; スタックポインタの上位をIOレジスタのスタックポインタの上位に展開
+  movw  XL,r22  ; Get the save address of the context to be expanded
+  ld  r0, X+  ; Get lower stack pointer from save source
+  out __SP_L__,r0  ; Expand the lower part of the stack pointer below the stack pointer of the IO register
+  ld  r0,X  ; Get stack pointer from save source
+  out __SP_H__,r0  ; Expand the upper part of the stack pointer to the upper part of the stack pointer of the IO register
 
-  pop r29   ; 非破壊レジスタのYレジスタの上位を展開
-  pop r28   ; 非破壊レジスタのYレジスタの下位を展開
+  pop r29   ; Expand the upper part of the non-destructive Y register
+  pop r28   ; Expand the lower part of the non-destructive Y register
 
-  pop r17  ; 非破壊レジスタの展開
-  pop r16  ; 非破壊レジスタの展開
-  pop r15  ; 非破壊レジスタの展開
-  pop r14  ; 非破壊レジスタの展開
-  pop r13  ; 非破壊レジスタの展開
-  pop r12  ; 非破壊レジスタの展開
-  pop r11  ; 非破壊レジスタの展開
-  pop r10  ; 非破壊レジスタの展開
-  pop r9  ; 非破壊レジスタの展開
-  pop r8  ; 非破壊レジスタの展開
-  pop r7  ; 非破壊レジスタの展開
-  pop r6  ; 非破壊レジスタの展開
-  pop r5  ; 非破壊レジスタの展開
-  pop r4  ; 非破壊レジスタの展開
-  pop r3  ; 非破壊レジスタの展開
-  pop r2  ; 非破壊レジスタの展開
-  pop r0  ; ステータスレジスタの戻し
-  out __SREG__,r0  ; ステータスレジスタの戻し
+  pop r17  ; Expand non-destructive registers
+  pop r16  ; Expand non-destructive registers
+  pop r15  ; Expand non-destructive registers
+  pop r14  ; Expand non-destructive registers
+  pop r13  ; Expand non-destructive registers
+  pop r12  ; Expand non-destructive registers
+  pop r11  ; Expand non-destructive registers
+  pop r10  ; Expand non-destructive registers
+  pop r9  ; Expand non-destructive registers
+  pop r8  ; Expand non-destructive registers
+  pop r7  ; Expand non-destructive registers
+  pop r6  ; Expand non-destructive registers
+  pop r5  ; Expand non-destructive registers
+  pop r4  ; Expand non-destructive registers
+  pop r3  ; Expand non-destructive registers
+  pop r2  ; Expand non-destructive registers
+  pop r0  ; Return status register
+  out __SREG__,r0  ; Return status register
 
-  ret  ; リターン時にスタックに保存されたPCが展開される
+  ret  ; On return, the PC saved in the stack is expanded
   .endfunc
 
 /* -------------------------------------------------------------------------*/
