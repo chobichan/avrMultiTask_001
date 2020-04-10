@@ -1,6 +1,7 @@
 # avrMultiTask_001
 Arduino multi task library for AVR
 
-REAL TIMEではないマルチタスク、一般的には協調型と呼ばれるマルチタスクをAVR用に移植したもの。
+this is NOT PREEMPT MULTI TASK!
 
-必要なリソースは充分に小さいので、AVRにもそこそこ使えるかなぁ。
+Please read this document.
+http://www.ertl.jp/ITRON/SPEC/FILE/mitron-400e.pdf
