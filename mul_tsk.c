@@ -103,17 +103,17 @@ ER rot_rdq( void )
 
   for( i = 0; i < MAX_TASK_NUMBER; i++ )
   {
-    if( ++tid >= MAX_TASK_NUMBER ) tid = 0;  //次のタスクに切り替え
+    if( ++tid >= MAX_TASK_NUMBER ) tid = 0;  // Switch to next task
     if( tcb[tid].rdy_flg & TTS_SUS ) continue;
-    loc_cpu();  //一時的に割込みを禁止
+    loc_cpu();  // Temporarily disable interrupts
     if( tcb[tid].rdy_flg & (TTS_RDY | TTS_WAI) )
     {
-      cur_tid = tid;  //コンテキスト切替え後のタスクIDの保存
+      cur_tid = tid;  // Saving task ID after context switch
       swi_ctx( &tcb[old_tid].sp, &tcb[tid].sp );
-      unl_cpu();  //割込みを再開
+      unl_cpu();  // Resume interrupt
       return E_OK;
     }
-    unl_cpu();  //割込みを再開
+    unl_cpu();  // Resume interrupt
   }
 
   return E_PAR;
@@ -132,11 +132,11 @@ void irot_rdq( void )
 
   for( i = 0; i < MAX_TASK_NUMBER; i++ )
   {
-    if( ++tid >= MAX_TASK_NUMBER ) tid = 0;  //次のタスクに切り替え
+    if( ++tid >= MAX_TASK_NUMBER ) tid = 0;  // Switch to next task
     if( tcb[tid].rdy_flg & TTS_SUS ) continue;
     if( tcb[tid].rdy_flg & (TTS_RDY | TTS_WAI) )
     {
-      cur_tid = tid;  //コンテキスト切替え後のタスクIDの保存
+      cur_tid = tid;  // Saving task ID after context switch
       swi_ctx( &tcb[old_tid].sp, &tcb[tid].sp );
       return;
     }
@@ -160,21 +160,21 @@ ER dly_tsk( RELTIM dly )
   }
   if( startTaskContext == 0 )
   {
-    while( (RELTIM)(systim - lastTim) < dly ) {}  /*時間経過待ち*/
+    while( (RELTIM)(systim - lastTim) < dly ) {}  // Waiting for time to elapse
     return E_OK;
   }
 
-  tcb[tid].rdy_flg = TTS_WAI;  /*待ち状態に遷移*/
+  tcb[tid].rdy_flg = TTS_WAI;  // Transition to wait state
   for( ;; )
   {
-    if( (systim - lastTim) >= dly )  /*時間経過待ち*/
+    if( (systim - lastTim) >= dly )  // Waiting for time to elapse
     {
-      tcb[tid].rdy_flg &= ~TTS_WAI;  /*待ち状態解除*/
-      tcb[tid].rdy_flg |= TTS_RDY;  /*READYに遷移*/
+      tcb[tid].rdy_flg &= ~TTS_WAI;  // Release waiting state
+      tcb[tid].rdy_flg |= TTS_RDY;  // Transition to READY
       return E_OK; 
     }
-    (void)rot_rdq();  /*ラウンドロビンの実行*/
-    if( !(tcb[tid].rdy_flg & TTS_WAI) ) break;  /*待ち状態が解除されている時、ループ終了*/
+    (void)rot_rdq();  // Round robin execution
+    if( !(tcb[tid].rdy_flg & TTS_WAI) ) break;  // Loop ends when wait state is released
   }
 
   tcb[tid].rdy_flg |= TTS_RDY;
@@ -187,11 +187,11 @@ ER dly_tsk( RELTIM dly )
 ---------------------------------------- */
 ER rel_wai( ID tid )
 {
-  if( tid < 0 || tid >= MAX_TASK_NUMBER ) return E_ID;     /*不正ID*/
-  if( tcb[tid].rdy_flg == 0 )             return E_NOEXS;  /*オブジェクト未生成*/
-  if( !(tcb[tid].rdy_flg & TTS_WAI) )     return E_OBJ;    /*対象が待ち状態でない*/
+  if( tid < 0 || tid >= MAX_TASK_NUMBER ) return E_ID;     // Incorrect ID
+  if( tcb[tid].rdy_flg == 0 )             return E_NOEXS;  // Object not created
+  if( !(tcb[tid].rdy_flg & TTS_WAI) )     return E_OBJ;    // Target is not waiting
 
-  tcb[tid].rdy_flg &= ~TTS_WAI;  /*待ち状態の解除*/
+  tcb[tid].rdy_flg &= ~TTS_WAI;  // Release waiting state
 
   return E_OK;
 }
@@ -221,11 +221,11 @@ ER ref_tst( ID tid, T_RTST *pk_rtst )
 ER sus_tsk( ID tid )
 {
   if( tid < 0 || tid >= MAX_TASK_NUMBER ) return E_ID;
-  if( tcb[tid].rdy_flg == 0 ) return E_NOEXS;  //タスク無効
+  if( tcb[tid].rdy_flg == 0 ) return E_NOEXS;  // Task disabled
 
-  tcb[tid].rdy_flg |= TTS_SUS;  //タスク無効
+  tcb[tid].rdy_flg |= TTS_SUS;  // Task disabled
 
-  if( tid == cur_tid ) rot_rdq();  //QUEを回す
+  if( tid == cur_tid ) rot_rdq();  // round QUE
 
   return E_OK;
 }
@@ -236,13 +236,13 @@ ER sus_tsk( ID tid )
 ---------------------------------------- */
 ER rsm_tsk( ID tid )
 {
-  if( tid < 0 || tid >= MAX_TASK_NUMBER ) return E_ID;     /*不正ID*/
-  if( tcb[tid].rdy_flg == 0 )             return E_NOEXS;  /*オブジェクト未生成*/
-  if( !(tcb[tid].rdy_flg & (TTS_WAI | TTS_SUS)) ) return E_OBJ;    /*対象が待ち状態でない*/
+  if( tid < 0 || tid >= MAX_TASK_NUMBER ) return E_ID;     // Incorrect ID
+  if( tcb[tid].rdy_flg == 0 )             return E_NOEXS;  // Object not created
+  if( !(tcb[tid].rdy_flg & (TTS_WAI | TTS_SUS)) ) return E_OBJ; // Target is not waiting
 
-  tcb[tid].rdy_flg &= ~TTS_SUS;  /*待ち状態の解除*/
+  tcb[tid].rdy_flg &= ~TTS_SUS;  // Release waiting state
 
-  rot_rdq();  //QUEを回す
+  rot_rdq();  // round QUE
 
   return E_OK;
 }
@@ -253,9 +253,9 @@ ER rsm_tsk( ID tid )
 ---------------------------------------- */
 void ext_tsk( void )
 {
-  tcb[cur_tid].rdy_flg = TTS_DMT;  //該当タスクをDORMANTにする
+  tcb[cur_tid].rdy_flg = TTS_DMT;  // Make the task DORMANT
 
-  for( ;; )  //どこかのタスクがRDYではないと、ここでロックしてしまうので注意
+  for( ;; )  // Note that if some task is not RDY, it will lock here
   {
     (void)rot_rdq();
   }
@@ -284,7 +284,7 @@ ER get_par( VP_INT *exinf, int size )
 ER dis_dsp( void )
 {
   loc_cpu();
-  disable_dispatch = 1;  //0以外の時はディスパッチを禁止する
+  disable_dispatch = 1;  // Dispatching is prohibited when it is not 0
   unl_cpu();
   return E_OK;
 }
@@ -295,7 +295,7 @@ ER dis_dsp( void )
 ER ena_dsp( void )
 {
   loc_cpu();
-  disable_dispatch = 0;  //0以外の時はディスパッチを禁止する
+  disable_dispatch = 0;  // Dispatching is prohibited when it is not 0
   unl_cpu();
   return E_OK;
 }
@@ -317,22 +317,22 @@ ER wai_sem( ID semid )
   presentWaiCount = sem_obj[ semid - 1 ].waiCount;
   unl_cpu();
 
-  tcb[tid].rdy_flg = TTS_WAI;  /*待ち状態に遷移*/
+  tcb[tid].rdy_flg = TTS_WAI;  // Transition to wait state
   for( ;; )
   {
     //loc_cpu();
     if( presentWaiCount == sem_obj[ semid - 1 ].sigCount )
     {
-      tcb[tid].rdy_flg &= ~TTS_WAI;  /*待ち状態の*/
-      tcb[tid].rdy_flg |= TTS_RDY;  /*READYに遷移*/
+      tcb[tid].rdy_flg &= ~TTS_WAI;  // Release waiting state
+      tcb[tid].rdy_flg |= TTS_RDY;  // Transition to READY
       loc_cpu();
       sem_obj[ semid - 1 ].waiCount = presentWaiCount + 1;
       unl_cpu();
       return E_OK;
     }
     //unl_cpu();
-    (void)rot_rdq();  /*ラウンドロビンの実行*/
-    if( !(tcb[tid].rdy_flg & TTS_WAI) ) break;  /*待ち状態が解除されている時、ループ終了*/
+    (void)rot_rdq();  // Round robin execution
+    if( !(tcb[tid].rdy_flg & TTS_WAI) ) break;  // Loop ends when wait state is released
   }
 
   return E_RLWAI;
