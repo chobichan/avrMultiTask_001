@@ -1,5 +1,5 @@
 /**********************************************************/
-/* マルチタスクやってみる                                 */
+/* try the multi task system on AVR micro computer.       */
 /**********************************************************/
 #include <MsTimer2.h>
 #include "delivertive.h"
@@ -20,7 +20,7 @@ void task2( void );
 /**********************************************************/
 /* valiables                                              */
 /**********************************************************/
-SYSTIM systim;  // 1msでインクリメントする変数
+SYSTIM systim;  // systim will be incremented by 10 at 10 milli second.
 uint8_t tsk0_stk[ 128 * 1 ];
 uint8_t tsk1_stk[ 128 * 1 ];
 uint8_t tsk2_stk[ 128 * 1 ];
@@ -30,7 +30,7 @@ uint8_t tsk2_stk[ 128 * 1 ];
 /**********************************************************/
 void systemTimerUpdate()
 {
-  systim += 10UL;
+  systim += 10UL;  // increment systim
 }
 
 /**********************************************************/
@@ -41,25 +41,25 @@ void setup()
   Serial.begin( 115200UL );
   Serial.println( "AVR Multi Task Demo." );
   delay( 100UL );
-  MsTimer2::set( 10, systemTimerUpdate ); // 500ms period
+  MsTimer2::set( 10, systemTimerUpdate ); // 10ms period
   MsTimer2::start();
 
-  tsk_ini();  //タスクの初期化
-  sta_rdq( ID_monitor );  //ラウンドロビン開始。ここからタスクが開始される
+  tsk_ini();  // initialize tasks.
+  sta_rdq( ID_monitor );  // start the round robin, and tasks will be started.
 
   /* Infinite loop */
   while(1) {}
 }
 
 /**********************************************************/
-/* loop ※使われない                                      */
+/* loop,,, but not reached.                               */
 /**********************************************************/
 void loop()
 {
 }
 
 /**********************************************************/
-/* タスク初期化                                           */
+/* initialize tasks                                       */
 /**********************************************************/
 void tsk_ini( void )
 {
@@ -67,9 +67,9 @@ void tsk_ini( void )
   reg_tsk( ID_task2, (void *)task2, (void *)tsk2_stk, sizeof(tsk2_stk), 0,0,0,0 );
   reg_tsk( ID_monitor, (void *)stackMonitor, (void *)tsk0_stk, sizeof(tsk0_stk), 0,0,0,0 );
 
-  sta_tsk( ID_task1 );
-  sta_tsk( ID_task2 );
-  sta_tsk( ID_monitor );
+  sta_tsk( ID_task1 );  // start task1
+  sta_tsk( ID_task2 );  // start task2
+  sta_tsk( ID_monitor );  // start monitor task
 }
 
 /**********************************************************/
@@ -82,7 +82,7 @@ void stackMonitor( void )
 {
   while( 1 )
   {
-    dly_tsk( 10 * 1000UL );
+    dly_tsk( 10 * 1000UL );  // dly_tsk( ms ) is about the same delay( ms ), but while waitting time(ms), another tasks will execute.
     stackPrint( "task1 stack : ", tsk1_stk, sizeof(tsk1_stk) );
     stackPrint( "task2 stack : ", tsk2_stk, sizeof(tsk2_stk) );
     stackPrint( "monitor stack : ", tsk0_stk, sizeof(tsk0_stk) );
