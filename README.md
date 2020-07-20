@@ -1,5 +1,5 @@
 # avrMultiTask_001
-Arduino multi task library for AVR
+Arduino multi tasking library for AVR
 
 this is NOT PREEMPT MULTI TASK!
 
